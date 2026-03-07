@@ -71,6 +71,8 @@ You can customize the device mount inside `docker-compose.yml` if your printer r
 | `PRINTER_DEVICE` | Path to the printer device. Set to `mock` for testing. | `/dev/usb/lp0` |
 | `PRINTER_DELAY_MS` | Delay in milliseconds between writing each line to the printer buffer | `500` |
 | `PRINTER_BLANK_LINES` | Number of trailing blank lines to append after each print job | `4` |
+| `PRINTER_MAX_BYTES` | Maximum allowed request body size in bytes | `10240` |
+| `PRINTER_MAX_TEXT_LENGTH` | Maximum allowed characters in the print text | `1000` |
 
 ## Testing
 

@@ -47,9 +47,28 @@ func main() {
 			log.Printf("Invalid PRINTER_BLANK_LINES '%s', falling back to %d", blanksStr, blankLines)
 		}
 	}
-	log.Printf("Appending %d blank lines after each print", blankLines)
 
-	server := api.NewServer(device, blankLines)
+	maxBytes := int64(10 * 1024) // Default 10KB
+	if bytesStr := os.Getenv("PRINTER_MAX_BYTES"); bytesStr != "" {
+		if parsed, err := strconv.ParseInt(bytesStr, 10, 64); err == nil && parsed > 0 {
+			maxBytes = parsed
+		} else {
+			log.Printf("Invalid PRINTER_MAX_BYTES '%s', falling back to %d", bytesStr, maxBytes)
+		}
+	}
+
+	maxTextLength := 1000 // Default 1000
+	if lengthStr := os.Getenv("PRINTER_MAX_TEXT_LENGTH"); lengthStr != "" {
+		if parsed, err := strconv.Atoi(lengthStr); err == nil && parsed > 0 {
+			maxTextLength = parsed
+		} else {
+			log.Printf("Invalid PRINTER_MAX_TEXT_LENGTH '%s', falling back to %d", lengthStr, maxTextLength)
+		}
+	}
+
+	log.Printf("Config: Appending %d blank lines, MaxBytes: %d, MaxTextLength: %d", blankLines, maxBytes, maxTextLength)
+
+	server := api.NewServer(device, blankLines, maxBytes, maxTextLength)
 
 	port := os.Getenv("PORT")
 	if port == "" {
