@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/menschomat/d10-thermoprinter/internal/printer"
@@ -12,8 +13,9 @@ import (
 
 // Server handles the HTTP API endpoints.
 type Server struct {
-	Device printer.Device
-	Router *mux.Router
+	Device     printer.Device
+	Router     *mux.Router
+	BlankLines int
 }
 
 // PrintRequest defines the JSON payload for printing.
@@ -22,10 +24,11 @@ type PrintRequest struct {
 }
 
 // NewServer initializes and returns a new Server instance.
-func NewServer(device printer.Device) *Server {
+func NewServer(device printer.Device, blankLines int) *Server {
 	s := &Server{
-		Device: device,
-		Router: mux.NewRouter(),
+		Device:     device,
+		Router:     mux.NewRouter(),
+		BlankLines: blankLines,
 	}
 	s.routes()
 	return s
@@ -68,8 +71,13 @@ func (s *Server) handlePrint() http.HandlerFunc {
 			return
 		}
 
+		textToPrint := req.Text
+		if s.BlankLines > 0 {
+			textToPrint += strings.Repeat("\n", s.BlankLines)
+		}
+
 		// Format the text (wrap, CP850, CRLF)
-		formatted, err := printer.FormatText(req.Text)
+		formatted, err := printer.FormatText(textToPrint)
 		if err != nil {
 			log.Printf("Error formatting text: %v", err)
 			http.Error(w, "Error formatting text for printer. Make sure all characters are supported.", http.StatusBadRequest)

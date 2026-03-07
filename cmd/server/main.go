@@ -39,7 +39,17 @@ func main() {
 		}
 	}
 
-	server := api.NewServer(device)
+	blankLines := 4 // Default value
+	if blanksStr := os.Getenv("PRINTER_BLANK_LINES"); blanksStr != "" {
+		if parsed, err := strconv.Atoi(blanksStr); err == nil && parsed >= 0 {
+			blankLines = parsed
+		} else {
+			log.Printf("Invalid PRINTER_BLANK_LINES '%s', falling back to %d", blanksStr, blankLines)
+		}
+	}
+	log.Printf("Appending %d blank lines after each print", blankLines)
+
+	server := api.NewServer(device, blankLines)
 
 	port := os.Getenv("PORT")
 	if port == "" {
