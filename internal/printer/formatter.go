@@ -58,43 +58,7 @@ func WrapText(text string, maxWidth int) string {
 			continue
 		}
 
-		currentLen := 0
-		for j, word := range words {
-			runes := []rune(word)
-			// Handle words longer than the maximum width by force breaking them
-			for len(runes) > maxWidth {
-				if currentLen > 0 {
-					result.WriteString("\n")
-					currentLen = 0
-				}
-				result.WriteString(string(runes[:maxWidth]))
-				result.WriteString("\n")
-				runes = runes[maxWidth:]
-			}
-
-			if len(runes) == 0 {
-				continue
-			}
-
-			if currentLen+len(runes)+1 > maxWidth && currentLen > 0 {
-				result.WriteString("\n")
-				currentLen = 0
-			}
-
-			if currentLen > 0 {
-				result.WriteString(" ")
-				currentLen++
-			}
-
-			result.WriteString(string(runes))
-			currentLen += len(runes)
-
-			// Fast path: if we hit exact width, break line now to avoid a trailing space on next iter
-			if currentLen == maxWidth && j < len(words)-1 {
-				result.WriteString("\n")
-				currentLen = 0
-			}
-		}
+		wrapWords(&result, words, maxWidth)
 
 		if i < len(lines)-1 {
 			result.WriteString("\n")
@@ -102,6 +66,53 @@ func WrapText(text string, maxWidth int) string {
 	}
 
 	return result.String()
+}
+
+func wrapWords(result *strings.Builder, words []string, maxWidth int) {
+	currentLen := 0
+	for j, word := range words {
+		currentLen = processWord(result, word, currentLen, maxWidth, j == len(words)-1)
+	}
+}
+
+func processWord(result *strings.Builder, word string, currentLen, maxWidth int, isLastWord bool) int {
+	runes := []rune(word)
+
+	// Handle words longer than the maximum width by force breaking them
+	for len(runes) > maxWidth {
+		if currentLen > 0 {
+			result.WriteString("\n")
+			currentLen = 0
+		}
+		result.WriteString(string(runes[:maxWidth]))
+		result.WriteString("\n")
+		runes = runes[maxWidth:]
+	}
+
+	if len(runes) == 0 {
+		return currentLen
+	}
+
+	if currentLen+len(runes)+1 > maxWidth && currentLen > 0 {
+		result.WriteString("\n")
+		currentLen = 0
+	}
+
+	if currentLen > 0 {
+		result.WriteString(" ")
+		currentLen++
+	}
+
+	result.WriteString(string(runes))
+	currentLen += len(runes)
+
+	// Fast path: if we hit exact width, break line now to avoid a trailing space on next iter
+	if currentLen == maxWidth && !isLastWord {
+		result.WriteString("\n")
+		currentLen = 0
+	}
+
+	return currentLen
 }
 
 func encodeToCP850(s string) ([]byte, error) {
