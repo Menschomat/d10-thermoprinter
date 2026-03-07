@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  thermoprinter:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - PRINTER_DEVICE=/dev/usb/lp0
+    # The device mapping below is important to access the host's usb device.
+    # It maps the host device to the container device.
+    devices:
+      - "/dev/usb/lp0:/dev/usb/lp0"
+    restart: unless-stopped
