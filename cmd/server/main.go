@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/menschomat/d10-thermoprinter/internal/api"
 	"github.com/menschomat/d10-thermoprinter/internal/printer"
@@ -20,8 +22,21 @@ func main() {
 		if devicePath == "" {
 			devicePath = "/dev/usb/lp0" // Default device
 		}
-		log.Printf("Using Real Printer Device at %s", devicePath)
-		device = &printer.RealDevice{DevicePath: devicePath}
+
+		delayMs := 500
+		if delayStr := os.Getenv("PRINTER_DELAY_MS"); delayStr != "" {
+			if parsed, err := strconv.Atoi(delayStr); err == nil {
+				delayMs = parsed
+			} else {
+				log.Printf("Invalid PRINTER_DELAY_MS '%s', falling back to %d ms", delayStr, delayMs)
+			}
+		}
+
+		log.Printf("Using Real Printer Device at %s with %dms delay", devicePath, delayMs)
+		device = &printer.RealDevice{
+			DevicePath: devicePath,
+			Delay:      time.Duration(delayMs) * time.Millisecond,
+		}
 	}
 
 	server := api.NewServer(device)
