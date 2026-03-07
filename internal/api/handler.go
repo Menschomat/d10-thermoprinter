@@ -43,36 +43,45 @@ func (s *Server) routes() {
 	s.Router.HandleFunc("/print", s.handlePrint()).Methods("POST")
 }
 
+func (s *Server) parsePrintRequest(w http.ResponseWriter, r *http.Request) (PrintRequest, bool) {
+	var req PrintRequest
+	// Limit the request body size to prevent memory exhaustion DoS
+	r.Body = http.MaxBytesReader(w, r.Body, s.MaxBytes)
+
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		if err.Error() == "http: request body too large" {
+			http.Error(w, fmt.Sprintf("Request body too large. Maximum size is %d bytes.", s.MaxBytes), http.StatusRequestEntityTooLarge)
+		} else {
+			http.Error(w, "Error reading request body", http.StatusBadRequest)
+		}
+		return req, false
+	}
+	defer r.Body.Close()
+
+	if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
+		return req, false
+	}
+
+	if req.Text == "" {
+		http.Error(w, "Text cannot be empty", http.StatusBadRequest)
+		return req, false
+	}
+
+	// Limit the text length to prevent hardware DoS (wasting paper/overheating)
+	if len(req.Text) > s.MaxTextLength {
+		http.Error(w, fmt.Sprintf("Text is too long. Maximum allowed length is %d characters.", s.MaxTextLength), http.StatusBadRequest)
+		return req, false
+	}
+
+	return req, true
+}
+
 func (s *Server) handlePrint() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Limit the request body size to prevent memory exhaustion DoS
-		r.Body = http.MaxBytesReader(w, r.Body, s.MaxBytes)
-
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			if err.Error() == "http: request body too large" {
-				http.Error(w, fmt.Sprintf("Request body too large. Maximum size is %d bytes.", s.MaxBytes), http.StatusRequestEntityTooLarge)
-			} else {
-				http.Error(w, "Error reading request body", http.StatusBadRequest)
-			}
-			return
-		}
-		defer r.Body.Close()
-
-		var req PrintRequest
-		if err := json.Unmarshal(bodyBytes, &req); err != nil {
-			http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
-			return
-		}
-
-		if req.Text == "" {
-			http.Error(w, "Text cannot be empty", http.StatusBadRequest)
-			return
-		}
-
-		// Limit the text length to prevent hardware DoS (wasting paper/overheating)
-		if len(req.Text) > s.MaxTextLength {
-			http.Error(w, fmt.Sprintf("Text is too long. Maximum allowed length is %d characters.", s.MaxTextLength), http.StatusBadRequest)
+		req, ok := s.parsePrintRequest(w, r)
+		if !ok {
 			return
 		}
 
