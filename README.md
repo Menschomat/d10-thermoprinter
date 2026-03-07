@@ -39,6 +39,7 @@ To run the application locally without an attached thermal printer, use the mock
 ```bash
 PRINTER_DEVICE=mock go run ./cmd/server/main.go
 ```
+
 Any print requests sent to the local server will be logged with their byte sequences lossy-string conversions.
 
 ### 2. Physical Machine (Real Printer)
@@ -49,6 +50,7 @@ By default, the application writes to `/dev/usb/lp0`. Run natively compiled:
 go build -o thermo-printer ./cmd/server
 ./thermo-printer
 ```
+
 *(Optionally define a custom path with `PRINTER_DEVICE=/dev/ttyUSB0 ./thermo-printer`)*
 
 ### 3. Using Docker Compose
@@ -67,10 +69,12 @@ You can customize the device mount inside `docker-compose.yml` if your printer r
 | -------- | ----------- | ------- |
 | `PORT` | The HTTP port the server listens on | `8080` |
 | `PRINTER_DEVICE` | Path to the printer device. Set to `mock` for testing. | `/dev/usb/lp0` |
+| `PRINTER_DELAY_MS` | Delay in milliseconds between writing each line to the printer buffer | `500` |
+| `PRINTER_BLANK_LINES` | Number of trailing blank lines to append after each print job | `4` |
 
 ## Testing
 
-Unit tests cover the heavy lifting of CP850 mappings and intelligent text wrapping. 
+Unit tests cover the heavy lifting of CP850 mappings and intelligent text wrapping.
 To run all tests:
 
 ```bash
