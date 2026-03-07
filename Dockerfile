@@ -15,11 +15,10 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
 # Start a new stage from scratch
-FROM alpine:latest  
+FROM scratch
 
-RUN apk --no-cache add ca-certificates tzdata
-
-WORKDIR /root/
+# Set working directory (optional for scratch, but keeps things tidy)
+WORKDIR /
 
 # Copy the Pre-built binary file from the previous stage
 COPY --from=builder /app/main .
