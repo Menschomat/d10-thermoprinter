@@ -50,3 +50,29 @@ func TestRealDevice_WriteWithDelay(t *testing.T) {
 		t.Errorf("Expected execution to take at least %v due to delays, took %v", expectedMinDuration, elapsed)
 	}
 }
+
+func TestMockDevice_Write(t *testing.T) {
+	device := &MockDevice{}
+	data := []byte("Hello, World!\nTest")
+
+	err := device.Write(data)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if string(device.LastWritten) != string(data) {
+		t.Errorf("expected LastWritten to be %q, got %q", string(data), string(device.LastWritten))
+	}
+}
+
+func TestRealDevice_Write_ErrorOpening(t *testing.T) {
+	// Provide a device path that does not exist to trigger open error
+	device := &RealDevice{
+		DevicePath: "/tmp/non-existent-device-12345/does-not-exist",
+	}
+
+	err := device.Write([]byte("Test\n"))
+	if err == nil {
+		t.Fatal("expected error when opening non-existent device, got nil")
+	}
+}

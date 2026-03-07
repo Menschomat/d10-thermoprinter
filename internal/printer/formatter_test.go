@@ -50,6 +50,24 @@ func TestWrapText(t *testing.T) {
 			expected: "Line 1\nLine 2\nLine 3 is\nlong",
 		},
 		{
+			name:     "Zero or negative max width",
+			input:    "Hello world this should not wrap",
+			maxWidth: 0,
+			expected: "Hello world this should not wrap",
+		},
+		{
+			name:     "Long word after some text",
+			input:    "abc 1234567890123456789012345",
+			maxWidth: 24,
+			expected: "abc\n123456789012345678901234\n5",
+		},
+		{
+			name:     "Blank lines kept",
+			input:    "   \n   \n",
+			maxWidth: 24,
+			expected: "\n\n",
+		},
+		{
 			name:     "Multiple spaces compressed",
 			input:    "word1   word2      word3",
 			maxWidth: 10,
