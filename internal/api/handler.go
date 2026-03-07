@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -13,9 +14,11 @@ import (
 
 // Server handles the HTTP API endpoints.
 type Server struct {
-	Device     printer.Device
-	Router     *mux.Router
-	BlankLines int
+	Device        printer.Device
+	Router        *mux.Router
+	BlankLines    int
+	MaxBytes      int64
+	MaxTextLength int
 }
 
 // PrintRequest defines the JSON payload for printing.
@@ -24,11 +27,13 @@ type PrintRequest struct {
 }
 
 // NewServer initializes and returns a new Server instance.
-func NewServer(device printer.Device, blankLines int) *Server {
+func NewServer(device printer.Device, blankLines int, maxBytes int64, maxTextLength int) *Server {
 	s := &Server{
-		Device:     device,
-		Router:     mux.NewRouter(),
-		BlankLines: blankLines,
+		Device:        device,
+		Router:        mux.NewRouter(),
+		BlankLines:    blankLines,
+		MaxBytes:      maxBytes,
+		MaxTextLength: maxTextLength,
 	}
 	s.routes()
 	return s
@@ -40,13 +45,13 @@ func (s *Server) routes() {
 
 func (s *Server) handlePrint() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Limit the request body size to 10KB to prevent memory exhaustion DoS
-		r.Body = http.MaxBytesReader(w, r.Body, 10*1024)
+		// Limit the request body size to prevent memory exhaustion DoS
+		r.Body = http.MaxBytesReader(w, r.Body, s.MaxBytes)
 
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
 			if err.Error() == "http: request body too large" {
-				http.Error(w, "Request body too large. Maximum size is 10KB.", http.StatusRequestEntityTooLarge)
+				http.Error(w, fmt.Sprintf("Request body too large. Maximum size is %d bytes.", s.MaxBytes), http.StatusRequestEntityTooLarge)
 			} else {
 				http.Error(w, "Error reading request body", http.StatusBadRequest)
 			}
@@ -66,8 +71,8 @@ func (s *Server) handlePrint() http.HandlerFunc {
 		}
 
 		// Limit the text length to prevent hardware DoS (wasting paper/overheating)
-		if len(req.Text) > 1000 {
-			http.Error(w, "Text is too long. Maximum allowed length is 1000 characters.", http.StatusBadRequest)
+		if len(req.Text) > s.MaxTextLength {
+			http.Error(w, fmt.Sprintf("Text is too long. Maximum allowed length is %d characters.", s.MaxTextLength), http.StatusBadRequest)
 			return
 		}
 

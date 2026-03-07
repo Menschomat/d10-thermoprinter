@@ -11,7 +11,7 @@ import (
 
 func TestHandlePrint(t *testing.T) {
 	mockDevice := &printer.MockDevice{}
-	server := NewServer(mockDevice, 0)
+	server := NewServer(mockDevice, 0, 10*1024, 1000)
 
 	tests := []struct {
 		name           string
