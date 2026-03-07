@@ -37,9 +37,16 @@ func (s *Server) routes() {
 
 func (s *Server) handlePrint() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Limit the request body size to 10KB to prevent memory exhaustion DoS
+		r.Body = http.MaxBytesReader(w, r.Body, 10*1024)
+
 		bodyBytes, err := io.ReadAll(r.Body)
 		if err != nil {
-			http.Error(w, "Error reading request body", http.StatusBadRequest)
+			if err.Error() == "http: request body too large" {
+				http.Error(w, "Request body too large. Maximum size is 10KB.", http.StatusRequestEntityTooLarge)
+			} else {
+				http.Error(w, "Error reading request body", http.StatusBadRequest)
+			}
 			return
 		}
 		defer r.Body.Close()
@@ -55,11 +62,17 @@ func (s *Server) handlePrint() http.HandlerFunc {
 			return
 		}
 
+		// Limit the text length to prevent hardware DoS (wasting paper/overheating)
+		if len(req.Text) > 1000 {
+			http.Error(w, "Text is too long. Maximum allowed length is 1000 characters.", http.StatusBadRequest)
+			return
+		}
+
 		// Format the text (wrap, CP850, CRLF)
 		formatted, err := printer.FormatText(req.Text)
 		if err != nil {
 			log.Printf("Error formatting text: %v", err)
-			http.Error(w, "Error formatting text for printer", http.StatusInternalServerError)
+			http.Error(w, "Error formatting text for printer. Make sure all characters are supported.", http.StatusBadRequest)
 			return
 		}
 

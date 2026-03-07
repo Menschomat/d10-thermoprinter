@@ -18,6 +18,7 @@ func TestHandlePrint(t *testing.T) {
 		payload        string
 		expectedStatus int
 		expectWrite    bool
+		expectedError  string
 	}{
 		{
 			name:           "Valid payload",
@@ -34,6 +35,24 @@ func TestHandlePrint(t *testing.T) {
 		{
 			name:           "Invalid JSON",
 			payload:        `{"text": `,
+			expectedStatus: http.StatusBadRequest,
+			expectWrite:    false,
+		},
+		{
+			name:           "Text too long",
+			payload:        `{"text": "` + string(make([]byte, 1001)) + `"}`, // 1001 characters
+			expectedStatus: http.StatusBadRequest,
+			expectWrite:    false,
+		},
+		{
+			name:           "Payload too large",
+			payload:        `{"text": "` + string(make([]byte, 11*1024)) + `"}`, // 11 KB
+			expectedStatus: http.StatusRequestEntityTooLarge,
+			expectWrite:    false,
+		},
+		{
+			name:           "Unsupported encoding character (emoji)",
+			payload:        `{"text": "Hello 🖨️"}`, // Printer emoji
 			expectedStatus: http.StatusBadRequest,
 			expectWrite:    false,
 		},
