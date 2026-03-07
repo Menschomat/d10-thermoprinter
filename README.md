@@ -1,5 +1,8 @@
 # Thermo Printer Backend
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=Menschomat_d10-thermoprinter&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=Menschomat_d10-thermoprinter)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=Menschomat_d10-thermoprinter&metric=coverage)](https://sonarcloud.io/summary/new_code?id=Menschomat_d10-thermoprinter)
+
 A lightweight Go backend that serves a REST API for a connected thermal printer (defaulting to `/dev/usb/lp0`). This service receives text via HTTP POST requests, formats it specifically for this thermal printer hardware, and sends the raw bytes to the device.
 
 ## Features
