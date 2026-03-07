@@ -1,9 +1,11 @@
 package printer
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
 
 // Device represents an abstraction over a physical printer.
@@ -14,6 +16,7 @@ type Device interface {
 // RealDevice writes raw bytes directly to the given device path (e.g. /dev/usb/lp0).
 type RealDevice struct {
 	DevicePath string
+	Delay      time.Duration
 }
 
 // Write writes data to real device
@@ -24,12 +27,24 @@ func (r *RealDevice) Write(data []byte) error {
 	}
 	defer file.Close()
 
-	n, err := file.Write(data)
-	if err != nil {
-		return fmt.Errorf("failed to write to device %s: %w", r.DevicePath, err)
+	lines := bytes.SplitAfter(data, []byte("\n"))
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+
+		n, err := file.Write(line)
+		if err != nil {
+			return fmt.Errorf("failed to write to device %s: %w", r.DevicePath, err)
+		}
+
+		log.Printf("Successfully wrote %d bytes to %s", n, r.DevicePath)
+
+		if r.Delay > 0 {
+			time.Sleep(r.Delay)
+		}
 	}
 
-	log.Printf("Successfully wrote %d bytes to %s", n, r.DevicePath)
 	return nil
 }
 
