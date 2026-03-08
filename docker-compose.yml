@@ -12,4 +12,8 @@ services:
     # It maps the host device to the container device.
     devices:
       - "/dev/usb/lp0:/dev/usb/lp0"
+    # Provide the container user (appuser) with supplemental access 
+    # to the host's lp group (GID 7) for printer device permissions.
+    group_add:
+      - "7"
     restart: unless-stopped
