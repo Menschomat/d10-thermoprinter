@@ -32,8 +32,8 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 
-# Copy the Pre-built binary file from the previous stage, changing ownership
-COPY --from=builder --chown=appuser:appgroup /app/main .
+# Copy the Pre-built binary file from the previous stage, changing ownership and restricting permissions
+COPY --from=builder --chown=appuser:appgroup --chmod=555 /app/main .
 
 # Use the unprivileged user
 USER appuser:appgroup
