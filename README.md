@@ -58,13 +58,32 @@ go build -o thermo-printer ./cmd/server
 
 ### 3. Using Docker Compose
 
-For easy deployment, run the included `docker-compose.yml`. This automatically mounts the host's `/dev/usb/lp0` into the container.
+For easy deployment, run the included `docker-compose.yml`. This automatically mounts the host's `/dev/usb/lp0` into the container and runs the latest main branch image.
 
 ```bash
+# Start the container
+docker-compose up -d
+
+# Or force a local build instead of pulling the image
 docker-compose up -d --build
 ```
 
 You can customize the device mount inside `docker-compose.yml` if your printer resolves to a different character device on the host.
+
+### 4. Using Docker Run
+
+If you prefer not to use Docker Compose, you can run the container directly with `docker run`. You must map the printer device and provide access to the `lp` (printer) group (often GID `7` on Debian/Alpine/Raspberry Pi):
+
+```bash
+docker run -d \
+  --name thermoprinter \
+  -p 8080:8080 \
+  --device=/dev/usb/lp0:/dev/usb/lp0 \
+  --group-add 7 \
+  -e PRINTER_DEVICE=/dev/usb/lp0 \
+  -e PRINTER_DELAY_MS=500 \
+  menschomat/d10-thermoprinter:main
+```
 
 ## Environment Variables
 
