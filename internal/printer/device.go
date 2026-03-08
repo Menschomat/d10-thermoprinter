@@ -12,6 +12,7 @@ import (
 // Device represents an abstraction over a physical printer.
 type Device interface {
 	Write(data []byte) error
+	Healthy() bool
 }
 
 // RealDevice writes raw bytes directly to the given device path (e.g. /dev/usb/lp0).
@@ -53,6 +54,12 @@ func (r *RealDevice) Write(data []byte) error {
 	return nil
 }
 
+// Healthy returns true if the device file exists and is accessible.
+func (r *RealDevice) Healthy() bool {
+	_, err := os.Stat(r.DevicePath)
+	return err == nil
+}
+
 // MockDevice logs the data it receives, useful for development and testing.
 type MockDevice struct {
 	LastWritten []byte
@@ -71,4 +78,9 @@ func (m *MockDevice) Write(data []byte) error {
 	log.Printf("MockDevice: String (lossy): %s", string(data))
 
 	return nil
+}
+
+// Healthy always returns true for the mock device.
+func (m *MockDevice) Healthy() bool {
+	return true
 }
