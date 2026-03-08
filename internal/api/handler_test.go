@@ -137,6 +137,10 @@ func (f *failingDevice) Write(data []byte) error {
 	return bytes.ErrTooLarge // return some arbitrary error
 }
 
+func (f *failingDevice) Healthy() bool {
+	return false
+}
+
 func TestHandlePrint_DeviceError(t *testing.T) {
 	device := &failingDevice{}
 	server := NewServer(device, 0, 10*1024, 1000)
@@ -152,5 +156,45 @@ func TestHandlePrint_DeviceError(t *testing.T) {
 
 	if rr.Code != http.StatusInternalServerError {
 		t.Errorf("handler returned wrong status code: got %v want %v", rr.Code, http.StatusInternalServerError)
+	}
+}
+
+func TestHandleHealthz_Healthy(t *testing.T) {
+	mockDevice := &printer.MockDevice{}
+	server := NewServer(mockDevice, 0, 10*1024, 1000)
+
+	req, err := http.NewRequest("GET", "/healthz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	server.Router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", rr.Code, http.StatusOK)
+	}
+	if !bytes.Contains(rr.Body.Bytes(), []byte(`"healthy"`)) {
+		t.Errorf("expected healthy response, got: %s", rr.Body.String())
+	}
+}
+
+func TestHandleHealthz_Unhealthy(t *testing.T) {
+	device := &failingDevice{}
+	server := NewServer(device, 0, 10*1024, 1000)
+
+	req, err := http.NewRequest("GET", "/healthz", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rr := httptest.NewRecorder()
+	server.Router.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusServiceUnavailable {
+		t.Errorf("handler returned wrong status code: got %v want %v", rr.Code, http.StatusServiceUnavailable)
+	}
+	if !bytes.Contains(rr.Body.Bytes(), []byte(`"unhealthy"`)) {
+		t.Errorf("expected unhealthy response, got: %s", rr.Body.String())
 	}
 }

@@ -19,6 +19,9 @@ COPY . .
 # Build the Go app
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/server
 
+# Build the healthcheck binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o healthcheck ./cmd/healthcheck
+
 # Start a new stage from scratch
 FROM scratch
 
@@ -35,11 +38,18 @@ COPY --from=builder /etc/group /etc/group
 # Copy the Pre-built binary file from the previous stage, changing ownership and restricting permissions
 COPY --from=builder --chown=appuser:appgroup --chmod=555 /app/main .
 
+# Copy the healthcheck binary
+COPY --from=builder --chown=appuser:appgroup --chmod=555 /app/healthcheck .
+
 # Use the unprivileged user
 USER appuser:appgroup
 
 # Expose port 8080 to the outside world
 EXPOSE 8080
+
+# Health check using the compiled binary (no curl/wget in scratch)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD ["./healthcheck"]
 
 # Command to run the executable
 CMD ["./main"]

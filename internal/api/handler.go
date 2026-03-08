@@ -42,6 +42,7 @@ func NewServer(device printer.Device, blankLines int, maxBytes int64, maxTextLen
 }
 
 func (s *Server) routes() {
+	s.Router.HandleFunc("/healthz", s.handleHealthz()).Methods("GET")
 	s.Router.HandleFunc("/print", s.handlePrint()).Methods("POST")
 
 	mcpServer := s.SetupMCPServer()
@@ -124,5 +125,19 @@ func (s *Server) handlePrint() http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "success", "message": "Printed successfully"}`))
+	}
+}
+
+func (s *Server) handleHealthz() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		healthy := s.Device.Healthy()
+		w.Header().Set("Content-Type", "application/json")
+		if healthy {
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte(`{"status":"healthy","printer":true}`))
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			w.Write([]byte(`{"status":"unhealthy","printer":false}`))
+		}
 	}
 }
