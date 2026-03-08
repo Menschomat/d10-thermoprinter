@@ -20,15 +20,16 @@ func FormatText(input string, align string) ([]byte, error) {
 	// Replace any isolated \n with \r\n, being careful not to replace already existing \r\n
 	var crlfBuilder strings.Builder
 	lines := strings.Split(strings.ReplaceAll(wrapped, "\r\n", "\n"), "\n")
-	for i, line := range lines {
+	for _, line := range lines {
 		aligned := alignLine(line, align, maxLineLength)
 		crlfBuilder.WriteString(aligned)
-		if i < len(lines)-1 {
+
+		// If line matches maxLineLength, it implicitly auto-wraps on thermal printers.
+		// Avoid appending CRLF in that case to prevent printing a blank second line.
+		if len([]rune(aligned)) < maxLineLength {
 			crlfBuilder.WriteString("\r\n")
 		}
 	}
-	// Append a final newline to trigger the printer to actually print the last line
-	crlfBuilder.WriteString("\r\n")
 
 	// 3. Convert to CP850
 	encoded, err := encodeToCP850(crlfBuilder.String())
@@ -40,10 +41,21 @@ func FormatText(input string, align string) ([]byte, error) {
 }
 
 func alignLine(line string, align string, maxWidth int) string {
+	switch align {
+	case "left":
+		line = strings.TrimLeft(line, " ")
+	case "right":
+		line = strings.TrimRight(line, " ")
+	case "center":
+		line = strings.TrimSpace(line)
+	default:
+		line = strings.TrimLeft(line, " ")
+	}
+
 	runes := []rune(line)
 	length := len(runes)
 	if length == 0 || length >= maxWidth {
-		return line
+		return string(runes)
 	}
 
 	spaces := maxWidth - length
@@ -52,12 +64,11 @@ func alignLine(line string, align string, maxWidth int) string {
 		return strings.Repeat(" ", spaces) + string(runes)
 	case "center":
 		leftSpaces := spaces / 2
-		rightSpaces := spaces - leftSpaces
-		return strings.Repeat(" ", leftSpaces) + string(runes) + strings.Repeat(" ", rightSpaces)
+		return strings.Repeat(" ", leftSpaces) + string(runes)
 	case "left":
 		fallthrough
 	default:
-		return string(runes) + strings.Repeat(" ", spaces)
+		return string(runes)
 	}
 }
 

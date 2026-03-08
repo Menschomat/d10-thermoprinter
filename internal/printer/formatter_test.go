@@ -95,11 +95,11 @@ func TestFormatText(t *testing.T) {
 	// ß -> 0xE1
 
 	// Expected wrapper result for maxLineLength 24:
-	// "abcdefghijklmnopqrstuvwx" (24)
-	// "yzäöüßABCDEFGHIJKLMNOPQR" (24)
-	// "STUVWXY                 " (24)
+	// "abcdefghijklmnopqrstuvwx" (24) => auto-wraps, no CRLF
+	// "yzäöüßABCDEFGHIJKLMNOPQR" (24) => auto-wraps, no CRLF
+	// "STUVWXY"                  (7)  => <24, appends CRLF
 
-	expectedString := "abcdefghijklmnopqrstuvwx\r\nyz\x84\x94\x81\xe1ABCDEFGHIJKLMNOPQR\r\nSTUVWXY                 \r\n"
+	expectedString := "abcdefghijklmnopqrstuvwxyz\x84\x94\x81\xe1ABCDEFGHIJKLMNOPQRSTUVWXY\r\n"
 
 	result, err := FormatText(input, "left")
 	if err != nil {
@@ -122,9 +122,9 @@ func TestFormatText(t *testing.T) {
 
 func TestFormatText_AlignCenter(t *testing.T) {
 	input := "short line\nanother line"
-	// "short line" -> 10 chars -> (24-10)/2 = 7 left spaces, 7 right spaces
-	// "another line" -> 12 chars -> (24-12)/2 = 6 left spaces, 6 right spaces
-	expectedString := "       short line       \r\n      another line      \r\n"
+	// "short line" -> 10 chars -> (24-10)/2 = 7 left spaces, no right spaces appended. Total < 24 -> gets CRLF
+	// "another line" -> 12 chars -> (24-12)/2 = 6 left spaces, no right spaces. Total < 24 -> gets CRLF
+	expectedString := "       short line\r\n      another line\r\n"
 
 	result, err := FormatText(input, "center")
 	if err != nil {
@@ -139,7 +139,8 @@ func TestFormatText_AlignCenter(t *testing.T) {
 func TestFormatText_AlignRight(t *testing.T) {
 	input := "short line"
 	// "short line" -> 10 chars -> 14 left spaces
-	expectedString := "              short line\r\n"
+	// length becomes 24, meaning it omits the CRLF because it triggers the auto-wrapping of the printer natively.
+	expectedString := "              short line"
 
 	result, err := FormatText(input, "right")
 	if err != nil {
@@ -148,5 +149,24 @@ func TestFormatText_AlignRight(t *testing.T) {
 
 	if !bytes.Equal(result, []byte(expectedString)) {
 		t.Errorf("FormatText() right = %q, want %q", result, expectedString)
+	}
+}
+
+func TestFormatText_AlignTrim(t *testing.T) {
+	input := "   spacy string   "
+	// WrapText already reduces it to "spacy string" (12 chars).
+	// For "right" align, 12 left space paddings are applied. Total 24 -> no CRLF.
+	expectedRight := "            spacy string"
+
+	resultRight, _ := FormatText(input, "right")
+	if !bytes.Equal(resultRight, []byte(expectedRight)) {
+		t.Errorf("FormatText() right trim = %q, want %q", resultRight, expectedRight)
+	}
+
+	// For "left" align, length is 12. No padding applied -> gets CRLF!
+	expectedLeft := "spacy string\r\n"
+	resultLeft, _ := FormatText(input, "left")
+	if !bytes.Equal(resultLeft, []byte(expectedLeft)) {
+		t.Errorf("FormatText() left trim = %q, want %q", resultLeft, expectedLeft)
 	}
 }
