@@ -53,18 +53,16 @@ func alignLine(line string, align string, maxWidth int) string {
 	}
 
 	runes := []rune(line)
-	length := len(runes)
-	if length == 0 || length >= maxWidth {
-		return string(runes)
-	}
+	spaces := maxWidth - len(runes)
 
-	spaces := maxWidth - length
+	// Since WrapText guarantees len(runes) <= maxWidth, spaces will be >= 0.
+	// If spaces == 0, strings.Repeat returns an empty string, effectively just returning the line.
+
 	switch align {
 	case "right":
 		return strings.Repeat(" ", spaces) + string(runes)
 	case "center":
-		leftSpaces := spaces / 2
-		return strings.Repeat(" ", leftSpaces) + string(runes)
+		return strings.Repeat(" ", spaces/2) + string(runes)
 	case "left":
 		fallthrough
 	default:
