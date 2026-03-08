@@ -64,8 +64,14 @@ func (s *Server) SetupMCPServer() *mcp.Server {
 	mcpServer := mcp.NewServer(&mcp.Implementation{Name: "d10-thermoprinter", Version: "1.0.0"}, nil)
 
 	mcp.AddTool(mcpServer, &mcp.Tool{
-		Name:        "print_text",
-		Description: "Print text to the thermal printer. Alignment can be left, center, or right.",
+		Name: "print_text",
+		Description: `Print text to the thermal printer. 
+Hardware Constraints:
+- Max line length: 24 characters. Words longer than 24 characters will be forcefully split.
+- Charset: CP850 (Code Page 850). Best for standard ASCII and Western European characters (like German Umlaute ä, ö, ü, ß). Other unicode symbols/emojis may not print correctly.
+- Line breaks: Automatic word-wrapping is applied. You can use '\n' for explicit line breaks.
+
+Alignment can be left, center, or right.`,
 	}, s.mcpPrint)
 
 	return mcpServer
