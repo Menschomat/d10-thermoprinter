@@ -76,3 +76,34 @@ func TestRealDevice_Write_ErrorOpening(t *testing.T) {
 		t.Fatal("expected error when opening non-existent device, got nil")
 	}
 }
+
+func TestRealDevice_Healthy_DeviceExists(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "mock-device-healthy-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	tmpFile.Close()
+
+	device := &RealDevice{DevicePath: tmpFile.Name()}
+
+	if !device.Healthy() {
+		t.Error("expected Healthy() to return true for existing device file")
+	}
+}
+
+func TestRealDevice_Healthy_DeviceMissing(t *testing.T) {
+	device := &RealDevice{DevicePath: "/tmp/non-existent-device-12345/does-not-exist"}
+
+	if device.Healthy() {
+		t.Error("expected Healthy() to return false for non-existent device path")
+	}
+}
+
+func TestMockDevice_Healthy(t *testing.T) {
+	device := &MockDevice{}
+
+	if !device.Healthy() {
+		t.Error("expected MockDevice.Healthy() to always return true")
+	}
+}
