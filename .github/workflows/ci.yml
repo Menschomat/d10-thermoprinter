@@ -13,6 +13,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  TRIVY_SEVERITY: 'CRITICAL,HIGH'
 
 jobs:
   test:
@@ -41,6 +42,31 @@ jobs:
       env:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
+  security-scan:
+    name: Security Scan (Trivy)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: ${{ env.TRIVY_SEVERITY }}
+          scanners: 'vuln,misconfig,secret,license'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
   build-and-push-docker:
     needs: test
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v')
@@ -49,6 +75,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      security-events: write
 
     steps:
     - name: Checkout repository
@@ -81,6 +108,7 @@ jobs:
 
     - name: Build and push Docker image
       uses: docker/build-push-action@v7
+      id: build
       with:
         context: .
         platforms: linux/amd64,linux/arm64
@@ -89,3 +117,19 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+    - name: Run Trivy vulnerability scanner on Docker image
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
+        format: 'sarif'
+        output: 'trivy-image-results.sarif'
+        severity: ${{ env.TRIVY_SEVERITY }}
+        scanners: 'vuln,license'
+      if: github.event_name != 'pull_request'
+
+    - name: Upload Trivy image scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-image-results.sarif'
+      if: github.event_name != 'pull_request'
