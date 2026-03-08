@@ -21,9 +21,13 @@ A lightweight Go backend that serves a REST API for a connected thermal printer 
 
 ```json
 {
-  "text": "Hello Printer, this string will be converted, wrapped and encoded as CP850."
+  "text": "Hello Printer, this string will be converted, wrapped and encoded as CP850.",
+  "align": "center"
 }
 ```
+
+- **text** (string, required): The content to print.
+- **align** (string, optional): Text alignment. Allowed values: `"left"`, `"center"`, `"right"`. Defaults to `"left"`.
 
 ### Example Usage (cURL)
 

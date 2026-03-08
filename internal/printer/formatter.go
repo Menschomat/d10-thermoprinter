@@ -10,18 +10,19 @@ import (
 
 const maxLineLength = 24
 
-// FormatText takes input UTF-8 text, wraps it to 24 characters,
+// FormatText takes input UTF-8 text, wraps it to 24 characters, aligns it,
 // converts it to CP850 encoding, and ensures DOS line endings (CRLF).
-func FormatText(input string) ([]byte, error) {
+func FormatText(input string, align string) ([]byte, error) {
 	// 1. Wrap text
 	wrapped := WrapText(input, maxLineLength)
 
-	// 2. Ensure CRLF
+	// 2. Ensure CRLF and apply alignment
 	// Replace any isolated \n with \r\n, being careful not to replace already existing \r\n
 	var crlfBuilder strings.Builder
 	lines := strings.Split(strings.ReplaceAll(wrapped, "\r\n", "\n"), "\n")
 	for i, line := range lines {
-		crlfBuilder.WriteString(line)
+		aligned := alignLine(line, align, maxLineLength)
+		crlfBuilder.WriteString(aligned)
 		if i < len(lines)-1 {
 			crlfBuilder.WriteString("\r\n")
 		}
@@ -36,6 +37,28 @@ func FormatText(input string) ([]byte, error) {
 	}
 
 	return encoded, nil
+}
+
+func alignLine(line string, align string, maxWidth int) string {
+	runes := []rune(line)
+	length := len(runes)
+	if length == 0 || length >= maxWidth {
+		return line
+	}
+
+	spaces := maxWidth - length
+	switch align {
+	case "right":
+		return strings.Repeat(" ", spaces) + string(runes)
+	case "center":
+		leftSpaces := spaces / 2
+		rightSpaces := spaces - leftSpaces
+		return strings.Repeat(" ", leftSpaces) + string(runes) + strings.Repeat(" ", rightSpaces)
+	case "left":
+		fallthrough
+	default:
+		return string(runes) + strings.Repeat(" ", spaces)
+	}
 }
 
 // WrapText wraps the given text to a maximum line length.

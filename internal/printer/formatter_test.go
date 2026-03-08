@@ -97,11 +97,11 @@ func TestFormatText(t *testing.T) {
 	// Expected wrapper result for maxLineLength 24:
 	// "abcdefghijklmnopqrstuvwx" (24)
 	// "yzäöüßABCDEFGHIJKLMNOPQR" (24)
-	// "STUVWXY"                  (7)
+	// "STUVWXY                 " (24)
 
-	expectedString := "abcdefghijklmnopqrstuvwx\r\nyz\x84\x94\x81\xe1ABCDEFGHIJKLMNOPQR\r\nSTUVWXY\r\n"
+	expectedString := "abcdefghijklmnopqrstuvwx\r\nyz\x84\x94\x81\xe1ABCDEFGHIJKLMNOPQR\r\nSTUVWXY                 \r\n"
 
-	result, err := FormatText(input)
+	result, err := FormatText(input, "left")
 	if err != nil {
 		t.Fatalf("FormatText() unexpected error: %v", err)
 	}
@@ -117,5 +117,36 @@ func TestFormatText(t *testing.T) {
 	// Check for CRLF endings
 	if !strings.Contains(string(result), "\r\n") {
 		t.Errorf("FormatText() did not replace \\n with \\r\\n")
+	}
+}
+
+func TestFormatText_AlignCenter(t *testing.T) {
+	input := "short line\nanother line"
+	// "short line" -> 10 chars -> (24-10)/2 = 7 left spaces, 7 right spaces
+	// "another line" -> 12 chars -> (24-12)/2 = 6 left spaces, 6 right spaces
+	expectedString := "       short line       \r\n      another line      \r\n"
+
+	result, err := FormatText(input, "center")
+	if err != nil {
+		t.Fatalf("FormatText() unexpected error: %v", err)
+	}
+
+	if !bytes.Equal(result, []byte(expectedString)) {
+		t.Errorf("FormatText() center = %q, want %q", result, expectedString)
+	}
+}
+
+func TestFormatText_AlignRight(t *testing.T) {
+	input := "short line"
+	// "short line" -> 10 chars -> 14 left spaces
+	expectedString := "              short line\r\n"
+
+	result, err := FormatText(input, "right")
+	if err != nil {
+		t.Fatalf("FormatText() unexpected error: %v", err)
+	}
+
+	if !bytes.Equal(result, []byte(expectedString)) {
+		t.Errorf("FormatText() right = %q, want %q", result, expectedString)
 	}
 }
