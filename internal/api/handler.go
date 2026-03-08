@@ -45,7 +45,7 @@ func (s *Server) routes() {
 	s.Router.HandleFunc("/print", s.handlePrint()).Methods("POST")
 
 	mcpServer := s.SetupMCPServer()
-	mcpHandler := mcp.NewSSEHandler(func(request *http.Request) *mcp.Server {
+	mcpHandler := mcp.NewStreamableHTTPHandler(func(request *http.Request) *mcp.Server {
 		return mcpServer
 	}, nil)
 	s.Router.PathPrefix("/mcp").Handler(mcpHandler)
