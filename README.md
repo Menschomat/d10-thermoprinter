@@ -37,6 +37,18 @@ curl -X POST http://localhost:8080/print \
   -d '{"text": "abcdefghijklmnopqrstuvwxyzäöüßABCDEFGHIJKLMNOPQRSTUVWXY"}'
 ```
 
+### OpenWebUI / MCP Integration
+
+This backend also functions as an MCP (Model Context Protocol) server via SSE, exposing the `print_text` tool to compatible AI interfaces.
+
+To use the thermal printer in **OpenWebUI**:
+
+1. Go to **Workspace** -> **Tools** (or Settings -> Connections, depending on your version).
+2. Add a new **MCP Server** connection.
+3. Select **SSE** as the transport type.
+4. Set the URL to: `http://<your-printer-ip>:8080/mcp`
+5. Save the configuration. AI models in OpenWebUI can now seamlessly invoke the `print_text` tool to print messages or notes directly!
+
 ## Running the Service
 
 ### 1. Local Development (Mock Mode)

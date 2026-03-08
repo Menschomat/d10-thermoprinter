@@ -10,6 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/menschomat/d10-thermoprinter/internal/printer"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 // Server handles the HTTP API endpoints.
@@ -42,6 +43,12 @@ func NewServer(device printer.Device, blankLines int, maxBytes int64, maxTextLen
 
 func (s *Server) routes() {
 	s.Router.HandleFunc("/print", s.handlePrint()).Methods("POST")
+
+	mcpServer := s.SetupMCPServer()
+	mcpHandler := mcp.NewSSEHandler(func(request *http.Request) *mcp.Server {
+		return mcpServer
+	}, nil)
+	s.Router.PathPrefix("/mcp").Handler(mcpHandler)
 }
 
 func (s *Server) parsePrintRequest(w http.ResponseWriter, r *http.Request) (PrintRequest, bool) {
