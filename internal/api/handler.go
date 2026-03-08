@@ -23,7 +23,8 @@ type Server struct {
 
 // PrintRequest defines the JSON payload for printing.
 type PrintRequest struct {
-	Text string `json:"text"`
+	Text  string `json:"text"`
+	Align string `json:"align,omitempty"`
 }
 
 // NewServer initializes and returns a new Server instance.
@@ -75,6 +76,14 @@ func (s *Server) parsePrintRequest(w http.ResponseWriter, r *http.Request) (Prin
 		return req, false
 	}
 
+	if req.Align == "" {
+		req.Align = "left"
+	}
+	if req.Align != "left" && req.Align != "center" && req.Align != "right" {
+		http.Error(w, "Invalid alignment. Allowed values: left, center, right", http.StatusBadRequest)
+		return req, false
+	}
+
 	return req, true
 }
 
@@ -90,8 +99,8 @@ func (s *Server) handlePrint() http.HandlerFunc {
 			textToPrint += strings.Repeat("\n", s.BlankLines)
 		}
 
-		// Format the text (wrap, CP850, CRLF)
-		formatted, err := printer.FormatText(textToPrint)
+		// Format the text (wrap, CP850, CRLF, align)
+		formatted, err := printer.FormatText(textToPrint, req.Align)
 		if err != nil {
 			log.Printf("Error formatting text: %v", err)
 			http.Error(w, "Error formatting text for printer. Make sure all characters are supported.", http.StatusBadRequest)
